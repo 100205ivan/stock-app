@@ -176,6 +176,20 @@ export default function PortfolioScreen({ navigation }) {
   const renderHoldingCard = (holding) => {
     const isProfit = holding.profitLoss >= 0;
     
+    // 從 symbol 中提取純代號和市場
+    // holding.symbol 可能是 "2330.TW" 或 "AAPL"
+    let pureSymbol = holding.symbol;
+    let detectedMarket = holding.market;
+    
+    // 如果 symbol 包含 .TW 或 .US 後綴，移除它
+    if (holding.symbol.endsWith('.TW')) {
+      pureSymbol = holding.symbol.replace('.TW', '');
+      detectedMarket = 'TW';
+    } else if (holding.symbol.endsWith('.US')) {
+      pureSymbol = holding.symbol.replace('.US', '');
+      detectedMarket = 'US';
+    }
+    
     return (
       <Pressable
         key={holding.id}
@@ -184,10 +198,12 @@ export default function PortfolioScreen({ navigation }) {
           navigation.navigate('Stocks', {
             screen: 'StockDetail',
             params: {
-              symbol: holding.symbol,
+              symbol: pureSymbol,
               name: holding.name,
-              market: holding.market,
+              market: detectedMarket,
               price: holding.currentPrice,
+              change: holding.profitLoss,
+              changePercent: holding.profitLossPercent,
             }
           });
         }}

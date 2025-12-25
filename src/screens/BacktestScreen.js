@@ -15,6 +15,7 @@ import BacktestResultSheet from '../components/backtest/BacktestResultSheet';
 
 import { fetchDailyClosesByStooq } from '../services/backtestApi';
 import { backtestBuyHold } from '../services/backtestEngine';
+import companyData from '../data/companyData.json';
 
 const MARKETS = [
   { key: 'TW', label: '台股' },
@@ -156,6 +157,17 @@ export default function BacktestScreen() {
   const selectedRangeLabel = RANGES.find((r) => r.key === rangeKey)?.label ?? '';
   const selectedStrategyLabel =
     STRATEGIES.find((s) => s.key === strategyKey)?.label ?? '';
+
+  // 獲取公司名稱
+  const getCompanyName = (sym) => {
+    if (!sym) return '';
+    const cleanSymbol = sym.trim();
+    // companyData 是物件，直接用鍵查找
+    const company = companyData[cleanSymbol];
+    return company?.fullName || '';
+  };
+
+  const companyName = getCompanyName(symbol);
 
   const handleRun = async () => {
     if (runningRef.current) return;
@@ -308,6 +320,7 @@ export default function BacktestScreen() {
           result={result}
           market={market}
           symbol={symbol}
+          companyName={companyName}
           rangeLabel={selectedRangeLabel}
           strategyLabel={selectedStrategyLabel}
           fmt={fmt}

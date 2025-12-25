@@ -13,37 +13,52 @@ export const lightTheme = {
     card: '#FFFFFF',
     text: '#000000',
     textSecondary: '#666666',
+    textTertiary: '#999999',
     border: '#E0E0E0',
+    divider: '#F0F0F0',
     primary: '#2196F3',
+    primaryLight: '#64B5F6',
     success: '#4CAF50',
     error: '#F44336',
     warning: '#FF9800',
-    up: '#10B981',
-    down: '#EF4444',
+    up: '#EF4444',          // 漲紅
+    down: '#10B981',        // 跌綠
+    upBackground: '#FEF2F2',
+    downBackground: '#F0FDF4',
     chartLine: '#2196F3',
     chartGrid: '#E0E0E0',
     shadow: 'rgba(0, 0, 0, 0.1)',
+    overlay: 'rgba(0, 0, 0, 0.5)',
   },
 };
 
 export const darkTheme = {
   mode: 'dark',
   colors: {
-    background: '#121212',
-    surface: '#1E1E1E',
-    card: '#2C2C2C',
+    background: '#0A0A0A',      // 更深的背景
+    surface: '#1A1A1A',         // 卡片背景
+    card: '#252525',            // 次級卡片
+    cardElevated: '#2A2A2A',    // 提升的卡片
     text: '#FFFFFF',
-    textSecondary: '#AAAAAA',
-    border: '#333333',
-    primary: '#64B5F6',
-    success: '#81C784',
-    error: '#E57373',
-    warning: '#FFB74D',
-    up: '#10B981',
-    down: '#EF4444',
-    chartLine: '#64B5F6',
-    chartGrid: '#333333',
-    shadow: 'rgba(0, 0, 0, 0.5)',
+    textSecondary: '#B0B0B0',   // 更亮的次要文字
+    textTertiary: '#808080',    // 三級文字
+    border: '#2A2A2A',          // 更柔和的邊框
+    divider: '#1F1F1F',
+    primary: '#3B82F6',         // 更鮮豔的藍色
+    primaryLight: '#60A5FA',
+    success: '#10B981',
+    error: '#EF4444',
+    warning: '#F59E0B',
+    up: '#EF4444',              // 漲紅
+    down: '#10B981',            // 跌綠
+    upBackground: '#2D1515',    // 漲的背景
+    downBackground: '#152D1F',  // 跌的背景
+    chartLine: '#3B82F6',
+    chartGrid: '#2A2A2A',
+    shadow: 'rgba(0, 0, 0, 0.8)',
+    overlay: 'rgba(0, 0, 0, 0.7)',
+    accent: '#8B5CF6',          // 強調色
+    accentLight: '#A78BFA',
   },
 };
 

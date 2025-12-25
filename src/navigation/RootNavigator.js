@@ -1,8 +1,9 @@
 // src/navigation/RootNavigator.js
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { Pressable } from 'react-native';
 
 import WelcomeScreen from '../screens/WelcomeScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -11,7 +12,9 @@ import StockDetailScreen from '../screens/StockDetailScreen';
 import BacktestScreen from '../screens/BacktestScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import PortfolioScreen from '../screens/PortfolioScreen';
+import CustomDrawer from '../components/CustomDrawer';
 import { useTheme } from '../context/ThemeContext';
+import { useDrawer } from '../context/DrawerContext';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -52,10 +55,44 @@ function StocksStack() {
 // 主應用的 Tab Navigator
 function MainTabNavigator() {
   const { theme } = useTheme();
+  const { drawerVisible, openDrawer, closeDrawer } = useDrawer();
+  const navigationRef = useRef(null);
+
+  // 漢堡選單按鈕
+  const renderMenuButton = () => (
+    <Pressable
+      onPress={openDrawer}
+      style={{ marginLeft: 16 }}
+      hitSlop={8}
+    >
+      <Ionicons name="menu" size={28} color={theme.colors.text} />
+    </Pressable>
+  );
+
+  // 處理導航
+  const handleNavigate = (screenName) => {
+    if (navigationRef.current) {
+      // 對於 Stocks，重置其 Stack 狀態以回到首頁
+      if (screenName === 'Stocks') {
+        navigationRef.current.navigate(screenName, {
+          screen: 'StocksMain'
+        });
+      } else {
+        navigationRef.current.navigate(screenName);
+      }
+      closeDrawer();
+    }
+  };
 
   return (
-    <Tab.Navigator
-      screenOptions={{
+    <>
+      <Tab.Navigator
+      screenOptions={({ navigation }) => {
+        // 保存 navigation reference
+        if (!navigationRef.current) {
+          navigationRef.current = navigation;
+        }
+        return {
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarStyle: {
@@ -76,6 +113,7 @@ function MainTabNavigator() {
         },
         headerTintColor: theme.colors.text,
         headerShadowVisible: false,
+        };
       }}
     >
       <Tab.Screen
@@ -83,6 +121,7 @@ function MainTabNavigator() {
         component={HomeScreen}
         options={{
           title: '首頁',
+          headerLeft: renderMenuButton,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons 
               name={focused ? 'home' : 'home-outline'} 
@@ -97,6 +136,7 @@ function MainTabNavigator() {
         component={StocksStack}
         options={{
           title: '股票',
+          headerLeft: renderMenuButton,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons 
               name={focused ? 'trending-up' : 'trending-up-outline'} 
@@ -111,6 +151,7 @@ function MainTabNavigator() {
         component={PortfolioScreen}
         options={{
           title: '持倉',
+          headerLeft: renderMenuButton,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons 
               name={focused ? 'briefcase' : 'briefcase-outline'} 
@@ -125,6 +166,7 @@ function MainTabNavigator() {
         component={BacktestScreen}
         options={{
           title: '回測',
+          headerLeft: renderMenuButton,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons 
               name={focused ? 'analytics' : 'analytics-outline'} 
@@ -139,7 +181,8 @@ function MainTabNavigator() {
         component={ProfileScreen}
         options={{
           title: '設定',
-          headerShown: false,
+          headerShown: true,
+          headerLeft: renderMenuButton,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons 
               name={focused ? 'settings' : 'settings-outline'} 
@@ -150,6 +193,13 @@ function MainTabNavigator() {
         }}
       />
     </Tab.Navigator>
+    
+    <CustomDrawer
+      visible={drawerVisible}
+      onClose={closeDrawer}
+      onNavigate={handleNavigate}
+    />
+    </>
   );
 }
 

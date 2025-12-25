@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { fetchTaiwanStocks } from '../../services/stockApi';
+import { useTheme } from '../../context/ThemeContext';
 
 // 台股預設清單（API 掛掉時用）
 const TAIWAN_STOCKS_DEFAULT = [
@@ -25,6 +26,7 @@ export default function TaiwanStocksSection({
   watchlist = [],
   onToggleWatchlist,
 }) {
+  const { theme } = useTheme();
   const [stocks, setStocks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -55,10 +57,11 @@ export default function TaiwanStocksSection({
   const renderItem = ({ item }) => {
     const isUp = item.change >= 0;
     const isFavorite = watchlist.includes(item.symbol);
+    const changePercent = typeof item.changePercent === 'number' ? item.changePercent : 0;
 
     return (
       <Pressable
-        style={styles.card}
+        style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
         onPress={() =>
           navigation.navigate('StockDetail', {
             symbol: item.symbol,
@@ -66,42 +69,48 @@ export default function TaiwanStocksSection({
             market: 'TW',
             price: item.price,
             change: item.change,
-            changePercent:
-              typeof item.changePercent === 'number'
-                ? item.changePercent
-                : 0,
+            changePercent: changePercent,
           })
         }
       >
         <View style={styles.left}>
-          <Text style={styles.symbol}>{item.symbol}</Text>
-          <Text style={styles.name}>{item.name}</Text>
+          <View style={styles.symbolRow}>
+            <Text style={[styles.symbol, { color: theme.colors.text }]}>{item.symbol}</Text>
+            <Pressable
+              hitSlop={8}
+              onPress={(e) => {
+                e.stopPropagation();
+                onToggleWatchlist && onToggleWatchlist(item.symbol);
+              }}
+            >
+              <Text style={[styles.star, isFavorite && styles.starActive]}>
+                {isFavorite ? '★' : '☆'}
+              </Text>
+            </Pressable>
+          </View>
+          <Text style={[styles.name, { color: theme.colors.textSecondary }]}>{item.name}</Text>
         </View>
 
         <View style={styles.right}>
-          <Pressable
-            hitSlop={8}
-            onPress={(e) => {
-              e.stopPropagation();
-              onToggleWatchlist && onToggleWatchlist(item.symbol);
-            }}
-          >
-            <Text style={[styles.star, isFavorite && styles.starActive]}>
-              {isFavorite ? '★' : '☆'}
-            </Text>
-          </Pressable>
-
-          <Text style={styles.price}>
+          <Text style={[styles.price, { color: theme.colors.text }]}>
             {typeof item.price === 'number'
               ? item.price.toFixed(2)
               : item.price}
           </Text>
-          <Text style={[styles.change, isUp ? styles.up : styles.down]}>
-            {isUp ? '+' : ''}
-            {typeof item.change === 'number'
-              ? item.change.toFixed(2)
-              : item.change}
-          </Text>
+          <View style={[
+            styles.changeContainer,
+            { backgroundColor: isUp ? theme.colors.upBackground : theme.colors.downBackground }
+          ]}>
+            <Text style={[styles.change, { color: isUp ? theme.colors.up : theme.colors.down }]}>
+              {isUp ? '+' : ''}
+              {typeof item.change === 'number'
+                ? item.change.toFixed(2)
+                : item.change}
+            </Text>
+            <Text style={[styles.changePercent, { color: isUp ? theme.colors.up : theme.colors.down }]}>
+              {isUp ? '+' : ''}{changePercent.toFixed(2)}%
+            </Text>
+          </View>
         </View>
       </Pressable>
     );
@@ -111,11 +120,11 @@ export default function TaiwanStocksSection({
     <>
       {loading && (
         <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" />
-          <Text style={styles.loadingText}>  台股資料讀取中...</Text>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>  台股資料讀取中...</Text>
         </View>
       )}
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error && <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>}
     </>
   );
 
@@ -139,49 +148,89 @@ const styles = StyleSheet.create({
   loadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
-    paddingHorizontal: 2,
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
   loadingText: {
     fontSize: 14,
-    color: '#666',
   },
   errorText: {
     fontSize: 13,
-    color: '#d32f2f',
-    marginBottom: 4,
-    paddingHorizontal: 2,
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
 
   card: {
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    marginBottom: 8,
+    borderRadius: 12,
+    marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    elevation: 1,
+    alignItems: 'center',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  left: {},
-  symbol: { fontSize: 18, fontWeight: 'bold' },
-  name: { fontSize: 14, color: '#666' },
-
-  right: {
-    alignItems: 'flex-end',
+  
+  left: {
+    flex: 1,
+  },
+  
+  symbolRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  
+  symbol: { 
+    fontSize: 18, 
+    fontWeight: '700',
+    marginRight: 8,
+  },
+  
+  name: { 
+    fontSize: 14,
+    marginTop: 2,
   },
 
   star: {
-    fontSize: 20,
-    color: '#9CA3AF',
-    marginBottom: 4,
+    fontSize: 18,
+    color: '#6B7280',
   },
   starActive: {
     color: '#F59E0B',
   },
 
-  price: { fontSize: 18, fontWeight: 'bold' },
-  change: { fontSize: 14, marginTop: 4 },
-  up: { color: '#d32f2f' },
-  down: { color: '#1976d2' },
+  right: {
+    alignItems: 'flex-end',
+  },
+
+  price: { 
+    fontSize: 20, 
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  
+  changeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+  },
+  
+  change: { 
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  
+  changePercent: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
 });

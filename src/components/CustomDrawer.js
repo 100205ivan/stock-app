@@ -12,49 +12,34 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
-export default function CustomDrawer({ visible, onClose, navigation }) {
+export default function CustomDrawer({ visible, onClose, onNavigate }) {
   const { theme } = useTheme();
 
   const menuItems = [
     {
       label: '首頁',
       icon: 'home-outline',
-      onPress: () => {
-        navigation.navigate('Home');
-        onClose();
-      },
+      screen: 'Home',
     },
     {
       label: '股票',
       icon: 'trending-up-outline',
-      onPress: () => {
-        navigation.navigate('Stocks');
-        onClose();
-      },
+      screen: 'Stocks',
     },
     {
       label: '持倉管理',
       icon: 'briefcase-outline',
-      onPress: () => {
-        navigation.navigate('Portfolio');
-        onClose();
-      },
+      screen: 'Portfolio',
     },
     {
       label: '策略回測',
       icon: 'analytics-outline',
-      onPress: () => {
-        navigation.navigate('Backtest');
-        onClose();
-      },
+      screen: 'Backtest',
     },
     {
       label: '設定',
       icon: 'settings-outline',
-      onPress: () => {
-        navigation.navigate('Profile');
-        onClose();
-      },
+      screen: 'Profile',
     },
   ];
 
@@ -88,7 +73,7 @@ export default function CustomDrawer({ visible, onClose, navigation }) {
                     styles.menuItem,
                     { borderBottomColor: theme.colors.border },
                   ]}
-                  onPress={item.onPress}
+                  onPress={() => onNavigate(item.screen)}
                 >
                   <Ionicons
                     name={item.icon}

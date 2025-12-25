@@ -25,6 +25,7 @@ export default function BacktestResultSheet({
   result,
   market,
   symbol,
+  companyName,
   rangeLabel,
   strategyLabel,
   fmt,
@@ -42,7 +43,7 @@ export default function BacktestResultSheet({
 
         <Text style={styles.sheetTitle}>回測結果</Text>
         <Text style={styles.sheetSubtitle}>
-          {marketLabel} · {symbol?.toUpperCase()} · {rangeLabel} · {strategyLabel}
+          {marketLabel} · {companyName ? `${companyName} ` : ''}{symbol?.toUpperCase()} · {rangeLabel} · {strategyLabel}
         </Text>
 
         <View style={styles.sheetRow}>

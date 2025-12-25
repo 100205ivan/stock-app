@@ -91,7 +91,10 @@
 - 流暢動畫效果
 - 響應式布局
 - 直覺操作體驗
-- 自訂側邊選單
+- 側邊選單導航（漢堡選單）
+  - 一鍵開啟側邊選單
+  - 快速切換所有主要頁面
+  - 點擊股票自動回到列表首頁
 
 ## 📁 專案結構
 
@@ -165,7 +168,8 @@ stock-app/
     │   └── priceAlertStorage.js  # 價格提醒儲存
     │
     ├── context/                  # 全局狀態
-    │   └── ThemeContext.js       # 主題管理
+    │   ├── ThemeContext.js       # 主題管理
+    │   └── DrawerContext.js      # 側邊選單狀態管理
     │
     ├── utils/                    # 工具函數
     │   ├── formatters.js         # 格式化工具
@@ -200,8 +204,8 @@ stock-app/
 #### 深色模式
 ```javascript
 {
-  background: '#121212',     // 深色背景
-  surface: '#1E1E1E',        // 卡片背景
+  background: '#0A0A0A',     // 極深色背景
+  surface: '#1A1A1A',        // 卡片背景
   text: '#FFFFFF',           // 主要文字
   textSecondary: '#AAAAAA',  // 次要文字
   primary: '#64B5F6',        // 主色調（淡藍）
@@ -285,8 +289,12 @@ function MyComponent() {
 
 ### 導航與狀態管理
 - **React Navigation 7** - 頁面導航管理
-- **Context API** - 主題狀態管理
-- **Zustand** - 輕量狀態管理
+  - Bottom Tab Navigator - 底部標籤導航
+  - Native Stack Navigator - 原生堆疊導航
+  - Custom Drawer - 自訂側邊選單
+- **Context API** - 全局狀態管理
+  - ThemeContext - 主題狀態
+  - DrawerContext - 側邊選單狀態
 
 ### UI 組件
 - **React Native Paper 5** - Material Design 組件庫
@@ -344,7 +352,13 @@ npm run web        # 在瀏覽器運行
 
 ## 📱 功能使用指南
 
-### 🏠 首頁
+### � 側邊選單
+- 點擊左上角漢堡選單圖示（☰）開啟側邊選單
+- 快速切換至：首頁、股票、持倉管理、策略回測、設定
+- 點擊股票會自動回到股票列表首頁（不停留在詳情頁）
+- 點擊選單外部或叉叉圖示關閉選單
+
+### �🏠 首頁
 - 查看最新財經新聞
 - 快速導航到各功能模組
 
@@ -440,6 +454,20 @@ npm run web        # 在瀏覽器運行
 ### 圖表實現
 - 使用 React Native 原生 View 組件繪製折線圖
 - 不依賴第三方圖表庫，避免相依性問題
+
+### 導航架構
+- 使用 React Navigation 7 的 Tab Navigator 和 Stack Navigator
+- 側邊選單透過 Modal 實現，使用 DrawerContext 管理狀態
+- 導航 ref 透過 screenOptions 獲取，確保跨組件導航正確性
+
+## 🎉 最近更新
+
+### v2.0.0 (2024-12-25)
+- ✨ 新增側邊選單功能（漢堡選單）
+- 🎨 優化深色主題配色（#0A0A0A 背景）
+- 🐛 修復股票詳情頁導航問題
+- 🔧 改進導航架構，使用 DrawerContext 管理狀態
+- 📱 側邊選單點擊股票自動回到列表首頁
 - 支援自適應螢幕寬度
 
 ### 效能優化

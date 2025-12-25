@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import StockLogo from '../StockLogo';
 import { useTheme } from '../../context/ThemeContext';
 import { fetchUsStockQuotes } from '../../services/usStockApi';
 
@@ -60,9 +61,12 @@ export default function USStocksSection({ navigation, watchlist = [], onToggleWa
           })
         }
       >
-        <View>
-          <Text style={styles.symbol}>{item.symbol}</Text>
-          <Text style={styles.name}>{item.name}</Text>
+        <View style={styles.left}>
+          <StockLogo symbol={item.symbol} name={item.name} market="US" />
+          <View>
+            <Text style={styles.symbol}>{item.symbol}</Text>
+            <Text style={styles.name}>{item.name}</Text>
+          </View>
         </View>
         <View style={styles.right}>
           <Pressable
@@ -151,6 +155,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     elevation: 1,
+  },
+  left: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+    backgroundColor: '#f0f0f0',
   },
   symbol: { fontSize: 18, fontWeight: 'bold' },
   name: { fontSize: 14, color: '#666' },

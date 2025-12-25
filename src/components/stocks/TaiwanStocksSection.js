@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import StockLogo from '../StockLogo';
 import { fetchTaiwanStocks } from '../../services/stockApi';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -77,21 +78,24 @@ export default function TaiwanStocksSection({
         }
       >
         <View style={styles.left}>
-          <View style={styles.symbolRow}>
-            <Text style={[styles.symbol, { color: theme.colors.text }]}>{item.symbol}</Text>
-            <Pressable
-              hitSlop={8}
-              onPress={(e) => {
-                e.stopPropagation();
-                onToggleWatchlist && onToggleWatchlist(item.symbol);
-              }}
-            >
-              <Text style={[styles.star, isFavorite && styles.starActive]}>
-                {isFavorite ? '★' : '☆'}
-              </Text>
-            </Pressable>
+          <StockLogo symbol={item.symbol} name={item.name} market="TW" />
+          <View style={styles.stockInfo}>
+            <View style={styles.symbolRow}>
+              <Text style={[styles.symbol, { color: theme.colors.text }]}>{item.symbol}</Text>
+              <Pressable
+                hitSlop={8}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onToggleWatchlist && onToggleWatchlist(item.symbol);
+                }}
+              >
+                <Text style={[styles.star, isFavorite && styles.starActive]}>
+                  {isFavorite ? '★' : '☆'}
+                </Text>
+              </Pressable>
+            </View>
+            <Text style={[styles.name, { color: theme.colors.textSecondary }]}>{item.name}</Text>
           </View>
-          <Text style={[styles.name, { color: theme.colors.textSecondary }]}>{item.name}</Text>
         </View>
 
         <View style={styles.right}>
@@ -188,6 +192,20 @@ const styles = StyleSheet.create({
   },
   
   left: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  
+  logo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+    backgroundColor: '#f0f0f0',
+  },
+  
+  stockInfo: {
     flex: 1,
   },
   

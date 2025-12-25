@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { fetchTwHotRanksTop15 } from '../../services/stockRankingApi';
+import StockLogo from '../StockLogo';
 
 export default function HotStocksSection({ navigation, watchlist = [], onToggleWatchlist, refreshing, onRefresh }) {
   const { theme } = useTheme();
@@ -61,9 +62,7 @@ export default function HotStocksSection({ navigation, watchlist = [], onToggleW
       >
         {/* 左側：排行 + 股票資訊 */}
         <View style={styles.left}>
-          <View style={styles.rankBadge}>
-            <Text style={styles.rankText}>#{rank}</Text>
-          </View>
+          <StockLogo symbol={item.symbol} name={item.name} market="TW" />
           <View>
             <Text style={styles.symbol}>{item.symbol}</Text>
             <Text style={styles.name}>{item.name}</Text>
@@ -170,6 +169,13 @@ const styles = StyleSheet.create({
   left: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  logo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+    backgroundColor: '#f0f0f0',
   },
   rankBadge: {
     width: 32,

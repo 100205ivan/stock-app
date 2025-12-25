@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import StockLogo from '../StockLogo';
 import { useTheme } from '../../context/ThemeContext';
 import { fetchTaiwanStocks } from '../../services/stockApi';
 import { fetchUsStockQuotes } from '../../services/usStockApi';
@@ -59,12 +60,12 @@ export default function WatchlistSection({ navigation, watchlist = [], refreshin
 
   const renderItem = ({ item }) => {
     const isUp = item.change >= 0;
+    const isTw = /^\d+$/.test(item.symbol);
 
     return (
       <Pressable
         style={styles.card}
         onPress={() => {
-          const isTw = /^\d+$/.test(item.symbol);
           navigation.navigate('StockDetail', {
             symbol: item.symbol,
             name: item.name,
@@ -78,9 +79,12 @@ export default function WatchlistSection({ navigation, watchlist = [], refreshin
           });
         }}
       >
-        <View>
-          <Text style={styles.symbol}>{item.symbol}</Text>
-          <Text style={styles.name}>{item.name}</Text>
+        <View style={styles.left}>
+          <StockLogo symbol={item.symbol} name={item.name} market={isTw ? 'TW' : 'US'} />
+          <View>
+            <Text style={styles.symbol}>{item.symbol}</Text>
+            <Text style={styles.name}>{item.name}</Text>
+          </View>
         </View>
         <View style={styles.right}>
           <Text style={styles.price}>
@@ -186,6 +190,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     elevation: 1,
+  },
+  left: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+    backgroundColor: '#f0f0f0',
   },
   symbol: { fontSize: 18, fontWeight: 'bold' },
   name: { fontSize: 14, color: '#666' },

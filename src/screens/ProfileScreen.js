@@ -1,57 +1,57 @@
-// src/screens/ProfileScreen.js
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch, Pressable, ScrollView, Image, TextInput, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Switch, Pressable, ScrollView, Alert, Linking, SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useDrawer } from '../context/DrawerContext';
+
+import { savePortfolio } from '../storage/portfolioStorage';
+import { saveWatchlistSymbols } from '../storage/watchlistStorage';
+import { clearSearchHistory } from '../storage/searchHistoryStorage';
+// 👇 請確認你的 userStorage 在這裡 (services 或 storage 資料夾)
+import { loadUserProfile, saveUserProfile, removeUserProfile } from '../storage/userStorage'; 
+import EditProfileModal from '../components/EditProfileModal';
 
 export default function ProfileScreen({ navigation }) {
-  const { theme, isDark, toggleTheme, themeMode, setThemeMode } = useTheme();
-  
-  // 使用者資料狀態
-  const [userName, setUserName] = useState('投資者');
-  const [userEmail, setUserEmail] = useState('user@example.com');
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const { theme, themeMode, setThemeMode } = useTheme();
+  const { openDrawer } = useDrawer();
+  const [userProfile, setUserProfile] = useState({ name: 'User Investor', email: 'user@example.com', bio: 'PRO 會員', avatarInitials: 'U' });
+  const [showEditModal, setShowEditModal] = useState(false);
 
-  const handleSaveName = () => {
-    setIsEditingName(false);
-    Alert.alert('成功', '使用者名稱已更新');
+  useEffect(() => { loadData(); }, []);
+
+  const loadData = async () => {
+    const profile = await loadUserProfile();
+    setUserProfile(profile);
   };
 
-  const handleSaveEmail = () => {
-    setIsEditingEmail(false);
-    Alert.alert('成功', '電子郵件已更新');
+  const handleSaveProfile = async (newProfile) => {
+    await saveUserProfile(newProfile);
+    setUserProfile(newProfile);
+    Alert.alert('成功', '個人檔案已更新');
   };
 
-  const handleLogout = async () => {
+  // 👇👇👇 這裡修改了：按下 OK 才跳轉 👇👇👇
+  const handleLogout = () => {
     Alert.alert(
-      '登出確認',
-      '確定要登出嗎？所有未儲存的數據將會遺失。',
+      '登出',               // 標題
+      '您已安全登出',       // 內容
       [
-        { text: '取消', style: 'cancel' },
-        { 
-          text: '登出', 
-          style: 'destructive', 
+        {
+          text: 'OK',
           onPress: async () => {
             try {
-              // 清除所有本地存儲數據
-              await AsyncStorage.multiRemove([
-                '@watchlist_symbols',
-                '@portfolio_data',
-                '@price_alerts',
-                '@search_history',
-              ]);
+              // 1. 清除帳號資料
+              await removeUserProfile();
               
-              // 導航回歡迎頁面
+              // 2. 跳轉回 Welcome 頁面
               navigation.reset({
                 index: 0,
                 routes: [{ name: 'Welcome' }],
               });
-              
-              Alert.alert('已登出', '您已成功登出');
             } catch (error) {
-              console.error('登出錯誤:', error);
-              Alert.alert('錯誤', '登出時發生錯誤，請重試');
+              console.error("登出錯誤:", error);
+              // 萬一出錯也強制跳轉
+              navigation.navigate('Welcome');
             }
           }
         }
@@ -59,314 +59,148 @@ export default function ProfileScreen({ navigation }) {
     );
   };
 
+  const handleClearHistory = async () => {
+    Alert.alert('清除搜尋紀錄', '確定要刪除所有搜尋歷史嗎？', [
+      { text: '取消', style: 'cancel' },
+      { text: '清除', style: 'destructive', onPress: async () => { await clearSearchHistory(); Alert.alert('成功', '搜尋紀錄已清除'); } },
+    ]);
+  };
+
+  const handleResetPortfolio = async () => {
+    Alert.alert('重置投資組合', '這將會刪除您所有的持倉與交易紀錄，此動作無法復原！', [
+      { text: '取消', style: 'cancel' },
+      { text: '重置', style: 'destructive', onPress: async () => { await savePortfolio([]); Alert.alert('已重置', '您的投資組合已清空'); } },
+    ]);
+  };
+
+  const handleResetWatchlist = async () => {
+    Alert.alert('清空自選股', '確定要移除所有關注的股票嗎？', [
+      { text: '取消', style: 'cancel' },
+      { text: '清空', style: 'destructive', onPress: async () => { await saveWatchlistSymbols([]); Alert.alert('已清空', '自選股清單已重置'); } },
+    ]);
+  };
+
+  const SettingItem = ({ icon, label, value, onPress, isDestructive, hasSwitch, switchValue, onSwitchChange }) => (
+    <Pressable
+      style={({ pressed }) => [styles.itemRow, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }, pressed && !hasSwitch && { backgroundColor: theme.colors.border + '40' }]}
+      onPress={hasSwitch ? null : onPress}
+    >
+      <View style={styles.itemLeft}>
+        <View style={[styles.iconBox, { backgroundColor: theme.colors.surface }]}>
+          <Ionicons name={icon} size={20} color={isDestructive ? theme.colors.error : theme.colors.text} />
+        </View>
+        <Text style={[styles.itemLabel, { color: isDestructive ? theme.colors.error : theme.colors.text }]}>{label}</Text>
+      </View>
+      <View style={styles.itemRight}>
+        {hasSwitch ? (
+          <Switch value={switchValue} onValueChange={onSwitchChange} trackColor={{ false: '#767577', true: theme.colors.primary }} />
+        ) : (
+          <>
+            {value && <Text style={[styles.itemValue, { color: theme.colors.textSecondary }]}>{value}</Text>}
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
+          </>
+        )}
+      </View>
+    </Pressable>
+  );
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* 使用者資料卡片 */}
-      <View style={[styles.profileCard, { backgroundColor: theme.colors.card }]}>
-        <View style={styles.avatarContainer}>
-          <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
-            <Text style={styles.avatarText}>{userName.charAt(0)}</Text>
-          </View>
-        </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <ScrollView contentContainerStyle={styles.content}>
         
-        <View style={styles.userInfoSection}>
-          <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: theme.colors.textSecondary }]}>使用者名稱</Text>
-            {isEditingName ? (
-              <View style={styles.editContainer}>
-                <TextInput
-                  style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-                  value={userName}
-                  onChangeText={setUserName}
-                  autoFocus
-                />
-                <Pressable onPress={handleSaveName} style={styles.saveButton}>
-                  <Text style={{ color: theme.colors.primary }}>儲存</Text>
+        <View style={styles.headerRow}>
+           <Pressable onPress={openDrawer} style={{ marginRight: 12 }}>
+             <Ionicons name="menu" size={28} color={theme.colors.text} />
+           </Pressable>
+           <Text style={[styles.pageTitle, { color: theme.colors.text }]}>設定</Text>
+        </View>
+
+        <View style={[styles.profileHeader, { backgroundColor: theme.colors.card }]}>
+          <View style={styles.avatarContainer}>
+            <Text style={styles.avatarText}>{userProfile.avatarInitials}</Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={[styles.profileName, { color: theme.colors.text }]}>{userProfile.name}</Text>
+            <View style={styles.badgeRow}>
+              {userProfile.bio ? <View style={[styles.proBadge, { backgroundColor: theme.colors.primary }]}><Text style={styles.proBadgeText}>{userProfile.bio}</Text></View> : null}
+              <Text style={[styles.emailText, { color: theme.colors.textSecondary }]}>{userProfile.email}</Text>
+            </View>
+          </View>
+          <Pressable onPress={() => setShowEditModal(true)}>
+            <Ionicons name="create-outline" size={24} color={theme.colors.primary} />
+          </Pressable>
+        </View>
+
+        <Text style={[styles.sectionHeader, { color: theme.colors.textSecondary }]}>外觀</Text>
+        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.themeSelectorRow, { borderBottomColor: theme.colors.border, borderBottomWidth: 1 }]}>
+            <Text style={[styles.itemLabel, { color: theme.colors.text, marginLeft: 16 }]}>主題模式</Text>
+            <View style={styles.themeOptions}>
+              {['light', 'dark', 'auto'].map((mode) => (
+                <Pressable key={mode} onPress={() => setThemeMode(mode)} style={[styles.themeBtn, themeMode === mode && { backgroundColor: theme.colors.primary }]}>
+                  <Text style={[styles.themeBtnText, { color: themeMode === mode ? '#FFF' : theme.colors.textSecondary }]}>{mode === 'light' ? '淺色' : mode === 'dark' ? '深色' : '自動'}</Text>
                 </Pressable>
-              </View>
-            ) : (
-              <Pressable onPress={() => setIsEditingName(true)} style={styles.editableRow}>
-                <Text style={[styles.infoValue, { color: theme.colors.text }]}>{userName}</Text>
-                <Text style={{ color: theme.colors.primary, fontSize: 14 }}>編輯</Text>
-              </Pressable>
-            )}
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: theme.colors.textSecondary }]}>電子郵件</Text>
-            {isEditingEmail ? (
-              <View style={styles.editContainer}>
-                <TextInput
-                  style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-                  value={userEmail}
-                  onChangeText={setUserEmail}
-                  keyboardType="email-address"
-                  autoFocus
-                />
-                <Pressable onPress={handleSaveEmail} style={styles.saveButton}>
-                  <Text style={{ color: theme.colors.primary }}>儲存</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <Pressable onPress={() => setIsEditingEmail(true)} style={styles.editableRow}>
-                <Text style={[styles.infoValue, { color: theme.colors.text }]}>{userEmail}</Text>
-                <Text style={{ color: theme.colors.primary, fontSize: 14 }}>編輯</Text>
-              </Pressable>
-            )}
-          </View>
-
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: theme.colors.text }]}>12</Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>持倉</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: theme.colors.text }]}>8</Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>關注</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: theme.colors.up }]}>+15.6%</Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>總報酬</Text>
+              ))}
             </View>
           </View>
+          <SettingItem icon="notifications-outline" label="價格提醒通知" hasSwitch switchValue={true} onSwitchChange={() => Alert.alert('提示', '通知設定功能開發中')} />
         </View>
-      </View>
 
-      {/* 外觀設定 */}
-      <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>外觀設定</Text>
-        
-        <View style={styles.row}>
-          <Text style={[styles.label, { color: theme.colors.textSecondary }]}>深色模式</Text>
-          <Switch 
-            value={isDark} 
-            onValueChange={toggleTheme}
-            trackColor={{ false: '#767577', true: theme.colors.primary }}
-            thumbColor={isDark ? '#f4f3f4' : '#f4f3f4'}
-          />
+        <Text style={[styles.sectionHeader, { color: theme.colors.textSecondary }]}>數據管理</Text>
+        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.card }]}>
+          <SettingItem icon="search-outline" label="清除搜尋紀錄" onPress={handleClearHistory} />
+          <SettingItem icon="star-outline" label="清空自選股" onPress={handleResetWatchlist} />
+          <SettingItem icon="trash-outline" label="重置投資組合" isDestructive onPress={handleResetPortfolio} />
         </View>
-        
-        <View style={styles.themeOptions}>
-          <Pressable
-            style={[
-              styles.themeOption,
-              themeMode === 'light' && { borderColor: theme.colors.primary, borderWidth: 2 },
-            ]}
-            onPress={() => setThemeMode('light')}
-          >
-            <Text style={[styles.themeOptionText, { color: theme.colors.text }]}>☀️ 淺色</Text>
-          </Pressable>
-          
-          <Pressable
-            style={[
-              styles.themeOption,
-              themeMode === 'dark' && { borderColor: theme.colors.primary, borderWidth: 2 },
-            ]}
-            onPress={() => setThemeMode('dark')}
-          >
-            <Text style={[styles.themeOptionText, { color: theme.colors.text }]}>🌙 深色</Text>
-          </Pressable>
-          
-          <Pressable
-            style={[
-              styles.themeOption,
-              themeMode === 'auto' && { borderColor: theme.colors.primary, borderWidth: 2 },
-            ]}
-            onPress={() => setThemeMode('auto')}
-          >
-            <Text style={[styles.themeOptionText, { color: theme.colors.text }]}>🔄 自動</Text>
-          </Pressable>
+
+        <Text style={[styles.sectionHeader, { color: theme.colors.textSecondary }]}>關於</Text>
+        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.card }]}>
+          <SettingItem icon="information-circle-outline" label="版本資訊" value="v2.1.0" onPress={() => {}} />
+          <SettingItem icon="document-text-outline" label="隱私權條款" onPress={() => Alert.alert('隱私權', '開啟瀏覽器顯示條款...')} />
+          <SettingItem icon="mail-outline" label="聯絡客服" onPress={() => Linking.openURL('mailto:support@stockapp.com')} />
         </View>
-      </View>
 
-      {/* 功能說明 */}
-      <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>功能說明</Text>
-        <Text style={[styles.featureText, { color: theme.colors.textSecondary }]}>
-          ✨ 深色模式 - 護眼且省電{'\n'}
-          📊 持倉管理 - 追蹤投資損益{'\n'}
-          🔍 股票搜尋 - 快速找到想要的股票{'\n'}
-          ⚡ 價格提醒 - 到價自動通知（開發中）{'\n'}
-          📈 技術分析 - 多種技術指標
-        </Text>
-      </View>
-
-      <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>關於 App</Text>
-        <Text style={[styles.label, { color: theme.colors.textSecondary }]}>
-          股票 App 專題版 v2.1
-        </Text>
-        <Text style={[styles.label, { color: theme.colors.textSecondary, marginTop: 8 }]}>
-          新增功能：選股器、基本面分析、公司 Logo
-        </Text>
-      </View>
-
-      {/* 登出按鈕 */}
-      <Pressable 
-        style={[styles.logoutButton, { backgroundColor: theme.colors.card, borderColor: '#ef4444' }]}
-        onPress={handleLogout}
-      >
-        <Text style={styles.logoutText}>🚪 登出帳號</Text>
-      </Pressable>
-    </ScrollView>
+        <Pressable 
+          style={({pressed}) => [
+            styles.logoutButton, 
+            { borderColor: theme.colors.border, opacity: pressed ? 0.7 : 1 }
+          ]} 
+          onPress={handleLogout}
+        >
+          <Text style={[styles.logoutText, { color: theme.colors.error }]}>登出帳號</Text>
+        </Pressable>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+      <EditProfileModal visible={showEditModal} onClose={() => setShowEditModal(false)} initialData={userProfile} onSave={handleSaveProfile} />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    padding: 16,
-    paddingTop: 60,
-  },
-  profileCard: {
-    marginBottom: 16,
-    padding: 20,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  userInfoSection: {
-    gap: 16,
-  },
-  infoRow: {
-    gap: 8,
-  },
-  infoLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  editableRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  editContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 16,
-  },
-  saveButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 12,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-  },
-  title: { 
-    fontSize: 28, 
-    fontWeight: 'bold', 
-    marginBottom: 20,
-    marginTop: 8,
-  },
-  section: { 
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  sectionTitle: { 
-    fontSize: 18, 
-    fontWeight: 'bold', 
-    marginBottom: 12,
-  },
-  row: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  label: { 
-    fontSize: 15,
-  },
-  themeOptions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 12,
-  },
-  themeOption: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    alignItems: 'center',
-  },
-  themeOptionText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  featureText: {
-    fontSize: 14,
-    lineHeight: 24,
-  },
-  logoutButton: {
-    marginBottom: 32,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ef4444',
-  },
+  content: { padding: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 8, paddingHorizontal: 4 },
+  pageTitle: { fontSize: 24, fontWeight: '800' },
+  profileHeader: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 16, marginBottom: 24 },
+  avatarContainer: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#E0E7FF', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  avatarText: { fontSize: 24, fontWeight: 'bold', color: '#3730A3' },
+  profileInfo: { flex: 1 },
+  profileName: { fontSize: 18, fontWeight: '700', marginBottom: 4 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  proBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+  proBadgeText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
+  emailText: { fontSize: 13 },
+  sectionHeader: { fontSize: 13, fontWeight: '600', marginBottom: 8, marginLeft: 4, textTransform: 'uppercase' },
+  sectionContainer: { borderRadius: 12, overflow: 'hidden', marginBottom: 24 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth },
+  itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconBox: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  itemLabel: { fontSize: 16 },
+  itemRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  itemValue: { fontSize: 14 },
+  themeSelectorRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingRight: 16 },
+  themeOptions: { flexDirection: 'row', backgroundColor: 'rgba(150, 150, 150, 0.1)', borderRadius: 8, padding: 2 },
+  themeBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6 },
+  themeBtnText: { fontSize: 13, fontWeight: '600' },
+  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, borderWidth: 1, marginTop: 8, marginBottom: 20 },
+  logoutText: { fontSize: 16, fontWeight: '600' },
 });

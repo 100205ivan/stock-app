@@ -1,38 +1,24 @@
-// src/components/stocks/WatchlistSection.js
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Pressable,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
-import StockLogo from '../StockLogo';
-import { useTheme } from '../../context/ThemeContext';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Animated } from 'react-native';
 import { fetchTaiwanStocks } from '../../services/stockApi';
 import { fetchUsStockQuotes } from '../../services/usStockApi';
+import { useTheme } from '../../context/ThemeContext';
 
-export default function WatchlistSection({ navigation, watchlist = [], refreshing, onRefresh }) {
+export default function WatchlistSection({ navigation, watchlist = [] }) {
   const { theme } = useTheme();
   const [stocks, setStocks] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(20)).current;
 
-  // 每次 watchlist 變動，就重新抓一次台股報價
   useEffect(() => {
     const load = async () => {
-      if (!watchlist || watchlist.length === 0) {
-        setStocks([]);
-        return;
-      }
-
+      if (!watchlist || watchlist.length === 0) { setStocks([]); return; }
       try {
         setLoading(true);
-        setError(null);
+        fadeAnim.setValue(0);
+        translateY.setValue(20);
 
-        // 將自選股代碼分成台股（純數字）與美股（含英文字母）
         const twCodes = watchlist.filter((code) => /^\d+$/.test(code));
         const usCodes = watchlist.filter((code) => !/^\d+$/.test(code));
 
@@ -40,64 +26,47 @@ export default function WatchlistSection({ navigation, watchlist = [], refreshin
           twCodes.length ? fetchTaiwanStocks(twCodes) : Promise.resolve([]),
           usCodes.length ? fetchUsStockQuotes(usCodes) : Promise.resolve([]),
         ]);
+        setStocks([...(twData || []), ...(usData || [])]);
+        
+        Animated.parallel([
+          Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+          Animated.spring(translateY, { toValue: 0, friction: 6, useNativeDriver: true })
+        ]).start();
 
-        const merged = [
-          ...(twData || []),
-          ...(usData || []),
-        ];
-
-        setStocks(merged);
       } catch (e) {
         console.warn('[watchlist] fetch error:', e);
-        setError('自選股資料載入失敗');
       } finally {
         setLoading(false);
       }
     };
-
     load();
   }, [watchlist]);
 
   const renderItem = ({ item }) => {
     const isUp = item.change >= 0;
     const isTw = /^\d+$/.test(item.symbol);
+    const color = isUp ? theme.colors.up : theme.colors.down;
+    const bgColor = isUp ? theme.colors.up : theme.colors.down;
 
     return (
       <Pressable
-        style={styles.card}
+        style={[styles.itemContainer, { borderBottomColor: theme.colors.border }]}
         onPress={() => {
           navigation.navigate('StockDetail', {
-            symbol: item.symbol,
-            name: item.name,
-            market: isTw ? 'TW' : 'US',
-            price: item.price,
-            change: item.change,
-            changePercent:
-              typeof item.changePercent === 'number'
-                ? item.changePercent
-                : 0,
+            symbol: item.symbol, name: item.name, market: isTw ? 'TW' : 'US',
+            price: item.price, change: item.change, changePercent: typeof item.changePercent === 'number' ? item.changePercent : 0,
           });
         }}
       >
-        <View style={styles.left}>
-          <StockLogo symbol={item.symbol} name={item.name} market={isTw ? 'TW' : 'US'} />
-          <View>
-            <Text style={styles.symbol}>{item.symbol}</Text>
-            <Text style={styles.name}>{item.name}</Text>
-          </View>
+        <View style={styles.leftCol}>
+          <Text style={[styles.symbol, { color: theme.colors.text }]}>{item.symbol}</Text>
+          <Text style={[styles.name, { color: theme.colors.textSecondary }]} numberOfLines={1}>{item.name}</Text>
         </View>
-        <View style={styles.right}>
-          <Text style={styles.price}>
-            {typeof item.price === 'number'
-              ? item.price.toFixed(2)
-              : item.price}
-          </Text>
-          <Text style={[styles.change, isUp ? styles.up : styles.down]}>
-            {isUp ? '+' : ''}
-            {typeof item.change === 'number'
-              ? item.change.toFixed(2)
-              : item.change}
-          </Text>
+        <View style={styles.rightCol}>
+          <Text style={[styles.price, { color: color }]}>{typeof item.price === 'number' ? item.price.toFixed(2) : item.price}</Text>
+          <View style={[styles.changeBadge, { backgroundColor: bgColor }]}>
+            <Text style={styles.changeText}>{isUp ? '+' : ''}{typeof item.changePercent === 'number' ? item.changePercent.toFixed(2) : '0.00'}%</Text>
+          </View>
         </View>
       </Pressable>
     );
@@ -105,108 +74,33 @@ export default function WatchlistSection({ navigation, watchlist = [], refreshin
 
   if (!watchlist || watchlist.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>目前沒有自選股</Text>
-        <Text style={styles.emptyText}>
-          可以在「熱門」或「台股」頁面點選右側的「☆」來加入自選股。
-        </Text>
+      <View style={styles.center}>
+        <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>尚未加入自選股</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {loading && (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" />
-          <Text style={styles.loadingText}>  自選股資料載入中...</Text>
-        </View>
-      )}
-      {error && <Text style={styles.errorText}>{error}</Text>}
-
-      <FlatList
-        data={stocks}
-        keyExtractor={(item, index) => item.symbol + index}
-        renderItem={renderItem}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing || false}
-            onRefresh={onRefresh}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
-          />
-        }
-      />
+      {loading && <View style={styles.loadingRow}><ActivityIndicator size="small" color={theme.colors.primary} /></View>}
+      <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateY }] }}>
+        <FlatList data={stocks} keyExtractor={(item) => item.symbol} renderItem={renderItem} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false} />
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-    paddingHorizontal: 2,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  errorText: {
-    fontSize: 13,
-    color: '#d32f2f',
-    marginBottom: 4,
-    paddingHorizontal: 2,
-  },
-
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-
-  card: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    marginBottom: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    elevation: 1,
-  },
-  left: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-    backgroundColor: '#f0f0f0',
-  },
-  symbol: { fontSize: 18, fontWeight: 'bold' },
-  name: { fontSize: 14, color: '#666' },
-  right: { alignItems: 'flex-end' },
-  price: { fontSize: 18, fontWeight: 'bold' },
-  change: { fontSize: 14, marginTop: 4 },
-  up: { color: '#d32f2f' },
-  down: { color: '#1976d2' },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  loadingRow: { padding: 8, alignItems: 'center' },
+  emptyText: { fontSize: 14 },
+  itemContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1 },
+  leftCol: { flex: 1, justifyContent: 'center' },
+  rightCol: { alignItems: 'flex-end' },
+  symbol: { fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'], marginBottom: 2 },
+  name: { fontSize: 13 },
+  price: { fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'], marginBottom: 4 },
+  changeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, minWidth: 72, alignItems: 'center', justifyContent: 'center' },
+  changeText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] },
 });

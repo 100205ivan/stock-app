@@ -1,64 +1,60 @@
-// src/context/ThemeContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'react-native';
 
 const THEME_STORAGE_KEY = '@stock_app_theme';
 
+// 專業金融配色：亮色模式
 export const lightTheme = {
   mode: 'light',
   colors: {
-    background: '#F5F5F5',
-    surface: '#FFFFFF',
+    background: '#FFFFFF',
+    surface: '#F7F9FC',
     card: '#FFFFFF',
-    text: '#000000',
-    textSecondary: '#666666',
-    textTertiary: '#999999',
-    border: '#E0E0E0',
-    divider: '#F0F0F0',
-    primary: '#2196F3',
-    primaryLight: '#64B5F6',
-    success: '#4CAF50',
-    error: '#F44336',
-    warning: '#FF9800',
-    up: '#EF4444',          // 漲紅
-    down: '#10B981',        // 跌綠
-    upBackground: '#FEF2F2',
-    downBackground: '#F0FDF4',
-    chartLine: '#2196F3',
-    chartGrid: '#E0E0E0',
-    shadow: 'rgba(0, 0, 0, 0.1)',
-    overlay: 'rgba(0, 0, 0, 0.5)',
+    text: '#111827',
+    textSecondary: '#6B7280',
+    textTertiary: '#9CA3AF',
+    border: '#E5E7EB',
+    divider: '#F3F4F6',
+    primary: '#2563EB',
+    primaryLight: '#60A5FA',
+    success: '#059669',
+    error: '#DC2626',
+    warning: '#D97706',
+    up: '#DC2626',              // 台股紅
+    down: '#059669',            // 台股綠
+    upBackground: '#FEF2F2',    // 淺紅底
+    downBackground: '#ECFDF5',  // 淺綠底
+    chartLine: '#2563EB',
+    chartGrid: '#F3F4F6',
+    shadow: 'rgba(0, 0, 0, 0.05)',
   },
 };
 
+// 專業金融配色：深色模式 (Dark Mode)
 export const darkTheme = {
   mode: 'dark',
   colors: {
-    background: '#0A0A0A',      // 更深的背景
-    surface: '#1A1A1A',         // 卡片背景
-    card: '#252525',            // 次級卡片
-    cardElevated: '#2A2A2A',    // 提升的卡片
-    text: '#FFFFFF',
-    textSecondary: '#B0B0B0',   // 更亮的次要文字
-    textTertiary: '#808080',    // 三級文字
-    border: '#2A2A2A',          // 更柔和的邊框
-    divider: '#1F1F1F',
-    primary: '#3B82F6',         // 更鮮豔的藍色
+    background: '#121212',      // 深灰底 (不傷眼)
+    surface: '#1E1E1E',         // 卡片深灰
+    card: '#1E1E1E',
+    text: '#E5E7EB',            // 淺灰白字
+    textSecondary: '#9CA3AF',
+    textTertiary: '#6B7280',
+    border: '#2A2A2A',          // 深色分隔線
+    divider: '#2A2A2A',
+    primary: '#3B82F6',
     primaryLight: '#60A5FA',
     success: '#10B981',
     error: '#EF4444',
     warning: '#F59E0B',
-    up: '#EF4444',              // 漲紅
-    down: '#10B981',            // 跌綠
-    upBackground: '#2D1515',    // 漲的背景
-    downBackground: '#152D1F',  // 跌的背景
+    up: '#FF5252',              // 深色底用的亮紅
+    down: '#4ADE80',            // 深色底用的亮綠
+    upBackground: 'rgba(239, 68, 68, 0.15)',
+    downBackground: 'rgba(74, 222, 128, 0.15)',
     chartLine: '#3B82F6',
     chartGrid: '#2A2A2A',
-    shadow: 'rgba(0, 0, 0, 0.8)',
-    overlay: 'rgba(0, 0, 0, 0.7)',
-    accent: '#8B5CF6',          // 強調色
-    accentLight: '#A78BFA',
+    shadow: 'rgba(0, 0, 0, 0.5)',
   },
 };
 
@@ -79,10 +75,9 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
   const systemColorScheme = useColorScheme();
-  const [themeMode, setThemeMode] = useState('auto'); // 'light', 'dark', 'auto'
+  const [themeMode, setThemeMode] = useState('auto');
   const [isDark, setIsDark] = useState(systemColorScheme === 'dark');
 
-  // 載入儲存的主題設定
   useEffect(() => {
     const loadTheme = async () => {
       try {
@@ -100,7 +95,6 @@ export const ThemeProvider = ({ children }) => {
     loadTheme();
   }, []);
 
-  // 當系統主題改變時，如果是 auto 模式則跟隨
   useEffect(() => {
     if (themeMode === 'auto') {
       setIsDark(systemColorScheme === 'dark');

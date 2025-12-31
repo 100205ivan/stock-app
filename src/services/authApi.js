@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ⚠️ 把這裡換成你剛剛從 ngrok 複製的網址 (不要有結尾的斜線 /)
-const API_URL = 'https://95754b2923a5.ngrok-free.app'; 
+const API_URL = 'https://e29712957e36.ngrok-free.app'; 
 
 export const login = async (email, password) => {
   try {

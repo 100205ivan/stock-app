@@ -11,20 +11,20 @@ import {
   RefreshControl,
   SafeAreaView,
   StatusBar,
-  Platform, // 引入 Platform 以便設定不同系統的字體
+  Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // ✨ 新增 MaterialCommunityIcons 用於更專業的圖示
 import { useTheme } from '../context/ThemeContext';
 import { useDrawer } from '../context/DrawerContext';
 import { fetchLatestNews } from '../services/newsApi';
 
-// 模擬指數資料
+// 模擬指數資料 (✨ 新增 trend 欄位來模擬走勢圖方向)
 const MOCK_INDICES = [
-  { name: '加權指數', symbol: '^TWII', value: 20120.55, change: 120.5, percent: 0.60 },
-  { name: '櫃買指數', symbol: '^TWO', value: 252.12, change: -0.45, percent: -0.18 },
-  { name: '道瓊工業', symbol: '^DJI', value: 39087.38, change: 90.99, percent: 0.23 },
-  { name: '那斯達克', symbol: '^IXIC', value: 16274.94, change: -180.12, percent: -1.15 },
-  { name: '費半指數', symbol: '^SOX', value: 4950.22, change: 45.3, percent: 0.92 },
+  { name: '加權指數', symbol: '^TWII', value: 20120.55, change: 120.5, percent: 0.60, trend: 'up' },
+  { name: '櫃買指數', symbol: '^TWO', value: 252.12, change: -0.45, percent: -0.18, trend: 'down' },
+  { name: '道瓊工業', symbol: '^DJI', value: 39087.38, change: 90.99, percent: 0.23, trend: 'up' },
+  { name: '那斯達克', symbol: '^IXIC', value: 16274.94, change: -180.12, percent: -1.15, trend: 'down' },
+  { name: '費半指數', symbol: '^SOX', value: 4950.22, change: 45.3, percent: 0.92, trend: 'up' },
 ];
 
 export default function HomeScreen({ navigation }) {
@@ -33,6 +33,9 @@ export default function HomeScreen({ navigation }) {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // ✨ 獲取今日日期
+  const today = new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'short' });
 
   const loadNews = async () => {
     try {
@@ -56,38 +59,57 @@ export default function HomeScreen({ navigation }) {
     loadNews();
   };
 
+  // ✨✨✨ [重點改造] 指數卡片渲染 ✨✨✨
   const renderIndexCard = (item, index) => {
     const isUp = item.change >= 0;
     const color = isUp ? theme.colors.up : theme.colors.down;
-    const bg = isUp ? theme.colors.upBackground : theme.colors.downBackground;
+    // 使用更專業的箭頭符號
+    const ArrowIcon = isUp ? 'triangle' : 'triangle-down';
+    // 模擬走勢圖圖示
+    const TrendChartIcon = isUp ? 'chart-line-variant' : 'chart-line-variant';
 
     return (
-      <View
+      <Pressable
         key={index}
         style={[
           styles.indexCard,
           { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
         ]}
       >
-        <View style={styles.indexHeader}>
-          <Text style={[styles.indexName, { color: theme.colors.textSecondary }]}>{item.name}</Text>
-          <Text style={[styles.indexSymbol, { color: theme.colors.textTertiary }]}>{item.symbol}</Text>
+        <View style={styles.indexCardTop}>
+          <View>
+            <Text style={[styles.indexName, { color: theme.colors.text }]}>{item.name}</Text>
+            <Text style={[styles.indexSymbol, { color: theme.colors.textTertiary }]}>{item.symbol}</Text>
+          </View>
+          {/* ✨ 模擬迷你走勢圖 (用大圖示淡化呈現) */}
+          <MaterialCommunityIcons 
+            name={TrendChartIcon} 
+            size={32} 
+            color={color} 
+            style={{ opacity: 0.2, transform: isUp ? [] : [{ scaleY: -1 }] }} 
+          />
         </View>
-        {/* 數字字體優化 */}
-        <Text style={[styles.indexValue, { color: theme.colors.text }]}>
-          {item.value.toLocaleString()}
-        </Text>
-        <View style={styles.changeRow}>
-          <Text style={[styles.changeText, { color }]}>
-            {item.change > 0 ? '+' : ''}{item.change.toFixed(2)}
+        
+        <View style={styles.indexCardMain}>
+           {/* ✨ 加大點數字體 */}
+          <Text style={[styles.indexValue, { color: theme.colors.text }]}>
+            {item.value.toLocaleString()}
           </Text>
-          <View style={[styles.percentBadge, { backgroundColor: bg }]}>
-            <Text style={[styles.percentText, { color }]}>
-              {item.percent > 0 ? '+' : ''}{item.percent.toFixed(2)}%
+        </View>
+
+        <View style={styles.indexCardBottom}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {/* ✨ 加入實心箭頭 */}
+            <MaterialCommunityIcons name={ArrowIcon} size={10} color={color} style={{ marginRight: 2 }} />
+            <Text style={[styles.changeText, { color }]}>
+              {Math.abs(item.change).toFixed(2)}
             </Text>
           </View>
+          <Text style={[styles.percentText, { color }]}>
+            {item.percent > 0 ? '+' : ''}{item.percent.toFixed(2)}%
+          </Text>
         </View>
-      </View>
+      </Pressable>
     );
   };
 
@@ -100,29 +122,20 @@ export default function HomeScreen({ navigation }) {
       >
         <View style={styles.newsContent}>
           <View style={styles.newsHeader}>
-            <Text style={[styles.newsSource, { color: theme.colors.primary }]}>
+            {/* ✨ 新聞來源加粗 */}
+            <Text style={[styles.newsSource, { color: theme.colors.text }]}>
               {item.source}
             </Text>
             <Text style={[styles.newsTime, { color: theme.colors.textTertiary }]}>
               {item.published_at ? new Date(item.published_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
             </Text>
           </View>
-          {/* 新聞標題優化：加行高、字距 */}
           <Text style={[styles.newsTitle, { color: theme.colors.text }]} numberOfLines={2}>
             {item.title}
           </Text>
-          {item.description ? (
-            <Text style={[styles.newsDesc, { color: theme.colors.textSecondary }]} numberOfLines={2}>
-              {item.description}
-            </Text>
-          ) : null}
         </View>
-        {item.image_url ? (
+        {item.image_url && (
           <Image source={{ uri: item.image_url }} style={styles.newsImage} resizeMode="cover" />
-        ) : (
-          <View style={[styles.newsImage, { backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center' }]}>
-            <Ionicons name="newspaper-outline" size={32} color={theme.colors.textTertiary} />
-          </View>
         )}
       </Pressable>
     );
@@ -132,19 +145,21 @@ export default function HomeScreen({ navigation }) {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'} />
       
-      {/* 頂部 Header */}
-      <View style={[styles.headerContainer, { backgroundColor: theme.colors.background }]}>
+      {/* Header */}
+      <View style={styles.headerContainer}>
         <View style={styles.headerLeftRow}>
           <Pressable onPress={openDrawer} style={styles.menuButton}>
             <Ionicons name="menu" size={28} color={theme.colors.text} />
           </Pressable>
-          <View>
-            <Text style={[styles.welcomeText, { color: theme.colors.text }]}>市場概況</Text>
+          <View style={{ marginLeft: 12 }}>
+             <Text style={[styles.pageTitle, { color: theme.colors.text }]}>市場概況</Text>
+             {/* ✨ 新增日期與狀態列 */}
+             <Text style={[styles.marketStatus, { color: theme.colors.textSecondary }]}>{today} · 市場開盤中</Text>
           </View>
         </View>
 
         <Pressable 
-          style={[styles.searchButton, { backgroundColor: theme.colors.surface }]}
+          style={[styles.searchButton, { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }]}
           onPress={() => navigation.navigate('Stocks', { screen: 'StocksMain' })}
         >
           <Ionicons name="search" size={20} color={theme.colors.textSecondary} />
@@ -155,68 +170,54 @@ export default function HomeScreen({ navigation }) {
         style={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
       >
-        {/* 指數卡片 */}
+        {/* 指數卡片區 */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.indicesContainer}>
           {MOCK_INDICES.map(renderIndexCard)}
         </ScrollView>
 
-        {/* 快捷按鈕區 */}
+        {/* 快捷按鈕區 (樣式微調得更緊湊) */}
         <View style={styles.shortcutRow}>
-          <Pressable 
-            style={styles.shortcutBtn} 
-            onPress={() => navigation.navigate('Stocks', { screen: 'StocksMain' })}
-          >
-            <View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + '15' }]}>
-              <Ionicons name="trending-up" size={24} color={theme.colors.primary} />
+          <Pressable style={styles.shortcutBtn} onPress={() => navigation.navigate('Stocks', { screen: 'StocksMain' })}>
+            <View style={[styles.iconCircle, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+              <Ionicons name="trending-up" size={22} color={theme.colors.primary} />
             </View>
-            <Text style={[styles.shortcutText, { color: theme.colors.text }]}>熱門排行</Text>
+            <Text style={[styles.shortcutText, { color: theme.colors.textSecondary }]}>熱門排行</Text>
           </Pressable>
 
-          <Pressable 
-            style={styles.shortcutBtn} 
-            onPress={() => navigation.navigate('Stocks', { 
-              screen: 'StocksMain',
-              params: { initialTab: 'watchlist' }
-            })}
-          >
-            <View style={[styles.iconCircle, { backgroundColor: theme.colors.warning + '15' }]}>
-              <Ionicons name="star" size={24} color={theme.colors.warning} />
+          <Pressable style={styles.shortcutBtn} onPress={() => navigation.navigate('Stocks', { screen: 'StocksMain', params: { initialTab: 'watchlist' } })}>
+            <View style={[styles.iconCircle, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+              <Ionicons name="star" size={22} color={theme.colors.warning} />
             </View>
-            <Text style={[styles.shortcutText, { color: theme.colors.text }]}>自選股</Text>
+            <Text style={[styles.shortcutText, { color: theme.colors.textSecondary }]}>自選股</Text>
           </Pressable>
 
-          <Pressable 
-            style={styles.shortcutBtn} 
-            onPress={() => navigation.navigate('Backtest')}
-          >
-            <View style={[styles.iconCircle, { backgroundColor: theme.colors.success + '15' }]}>
-              <Ionicons name="analytics" size={24} color={theme.colors.success} />
+          <Pressable style={styles.shortcutBtn} onPress={() => navigation.navigate('Backtest')}>
+            <View style={[styles.iconCircle, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+              <Ionicons name="analytics" size={22} color={theme.colors.success} />
             </View>
-            <Text style={[styles.shortcutText, { color: theme.colors.text }]}>策略回測</Text>
+            <Text style={[styles.shortcutText, { color: theme.colors.textSecondary }]}>策略回測</Text>
           </Pressable>
 
-          <Pressable 
-            style={styles.shortcutBtn} 
-            onPress={() => navigation.navigate('Portfolio')}>
-            <View style={[styles.iconCircle, { backgroundColor: '#8B5CF6' + '15' }]}>
-              <Ionicons name="briefcase" size={24} color="#8B5CF6" />
+          <Pressable style={styles.shortcutBtn} onPress={() => navigation.navigate('Portfolio')}>
+            <View style={[styles.iconCircle, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+              <Ionicons name="briefcase" size={22} color="#8B5CF6" />
             </View>
-            <Text style={[styles.shortcutText, { color: theme.colors.text }]}>資產管理</Text>
+            <Text style={[styles.shortcutText, { color: theme.colors.textSecondary }]}>資產管理</Text>
           </Pressable>
         </View>
 
         {/* 新聞列表 */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>財經快訊</Text>
-          <Pressable onPress={loadNews}>
-             <Ionicons name="refresh" size={18} color={theme.colors.primary} />
+        <View style={[styles.sectionHeader, { borderBottomColor: theme.colors.border, borderBottomWidth: 1, paddingBottom: 8 }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>財經要聞</Text>
+          <Pressable onPress={loadNews} style={{ flexDirection: 'row', alignItems: 'center' }}>
+             <Text style={{ color: theme.colors.textTertiary, fontSize: 12, marginRight: 4 }}>更新</Text>
+             <Ionicons name="refresh" size={14} color={theme.colors.textTertiary} />
           </Pressable>
         </View>
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>正在更新市場資訊...</Text>
+            <ActivityIndicator size="small" color={theme.colors.primary} />
           </View>
         ) : (
           <View style={styles.newsList}>
@@ -232,12 +233,10 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-// ✨ 字體優化設定
+// 字體優化
 const getFontFamily = (weight = 'normal') => {
-  if (Platform.OS === 'ios') {
-    return 'PingFang TC'; // iOS 強制使用蘋方體
-  }
-  return weight === 'bold' ? 'sans-serif-medium' : 'sans-serif'; // Android 現代黑體
+  if (Platform.OS === 'ios') return 'PingFang TC';
+  return weight === 'bold' ? 'sans-serif-medium' : 'sans-serif';
 };
 
 const styles = StyleSheet.create({
@@ -245,109 +244,70 @@ const styles = StyleSheet.create({
   headerContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginTop: 10,
+    marginTop: 5,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth, // 加入細分隔線增加層次
+    borderBottomColor: 'rgba(150,150,150,0.1)',
   },
-  headerLeftRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
+  headerLeftRow: { flexDirection: 'row', alignItems: 'center' },
   menuButton: { padding: 4 },
-  
-  // 🔥 [標題優化]
-  welcomeText: { 
-    fontSize: 28, 
-    fontWeight: '700', // 稍微減輕一點點，不要太死板的 bold
+  pageTitle: { 
+    fontSize: 22, // 稍微縮小標題，讓給日期
+    fontWeight: '700', 
     fontFamily: getFontFamily('bold'),
-    letterSpacing: 0.8, // 增加字距，看起來比較高級
-  },
-  
-  searchButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  container: { flex: 1 },
-  
-  // 指數區域
-  indicesContainer: { paddingHorizontal: 16, paddingVertical: 16, gap: 12 },
-  indexCard: { width: 150, padding: 12, borderRadius: 12, borderWidth: 1, marginRight: 0 },
-  indexHeader: { marginBottom: 8 },
-  indexName: { 
-    fontSize: 13, 
-    fontWeight: '600',
-    fontFamily: getFontFamily(),
     letterSpacing: 0.5,
   },
-  indexSymbol: { fontSize: 10, marginTop: 2, opacity: 0.7 },
+  marketStatus: { fontSize: 12, fontFamily: getFontFamily(), marginTop: 2 },
+  searchButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   
-  // 🔥 [數字優化]
+  container: { flex: 1 },
+  
+  // ✨✨✨ [重點改造] 指數卡片樣式 ✨✨✨
+  indicesContainer: { paddingHorizontal: 16, paddingVertical: 16, gap: 12 },
+  indexCard: { 
+    width: 160, // 稍微加寬
+    padding: 12, 
+    borderRadius: 12, 
+    borderWidth: 1, 
+    justifyContent: 'space-between'
+  },
+  indexCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  indexName: { fontSize: 14, fontWeight: '700', fontFamily: getFontFamily('bold') },
+  indexSymbol: { fontSize: 11, fontFamily: getFontFamily(), marginTop: 2, opacity: 0.8 },
+  
+  indexCardMain: { marginVertical: 10 },
   indexValue: { 
-    fontSize: 19, 
-    fontWeight: '700', 
-    fontVariant: ['tabular-nums'], // 讓數字等寬對齊
-    marginBottom: 6,
-    letterSpacing: 0.5, 
-  },
-  
-  changeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  changeText: { fontSize: 12, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  percentBadge: { paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 },
-  percentText: { fontSize: 10, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  
-  // 快捷按鈕
-  shortcutRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 24 },
-  shortcutBtn: { alignItems: 'center', gap: 8 },
-  iconCircle: { width: 56, height: 56, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  shortcutText: { 
-    fontSize: 12, 
-    fontWeight: '500', 
-    fontFamily: getFontFamily(),
-    marginTop: 4 
-  },
-  
-  // 區塊標題
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 },
-  sectionTitle: { 
-    fontSize: 20, 
-    fontWeight: '700',
+    fontSize: 24, // ✨ 加大點數
+    fontWeight: '800', 
     fontFamily: getFontFamily('bold'),
-    letterSpacing: 0.5
+    fontVariant: ['tabular-nums'], 
+    letterSpacing: 0.5 
   },
   
-  loadingContainer: { padding: 40, alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 14, fontFamily: getFontFamily() },
+  indexCardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  changeText: { fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'], fontFamily: getFontFamily('bold') },
+  percentText: { fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'], fontFamily: getFontFamily('bold') },
+  // ✨✨✨ 改造結束 ✨✨✨
+
+  shortcutRow: { flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: 16, marginBottom: 16, marginTop: 8 },
+  shortcutBtn: { alignItems: 'center', gap: 6 },
+  iconCircle: { width: 48, height: 48, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  shortcutText: { fontSize: 11, fontWeight: '500', fontFamily: getFontFamily() },
   
-  // 新聞列表
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 12, marginBottom: 8 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', fontFamily: getFontFamily('bold') },
+  
+  loadingContainer: { padding: 20, alignItems: 'center' },
+  
   newsList: { paddingHorizontal: 16 },
-  newsItem: { flexDirection: 'row', paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, gap: 12 },
-  newsContent: { flex: 1, justifyContent: 'space-between' },
-  newsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 8 },
-  newsSource: { 
-    fontSize: 11, 
-    fontWeight: '700', 
-    textTransform: 'uppercase',
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium', // 英文用系統字體比較好看
-  },
-  newsTime: { fontSize: 11 },
-  
-  // 🔥 [新聞標題優化]
-  newsTitle: { 
-    fontSize: 16, // 稍微加大
-    fontWeight: '600', 
-    lineHeight: 24, // 增加行高，閱讀更舒適
-    marginBottom: 6,
-    fontFamily: getFontFamily(),
-    letterSpacing: 0.3, // 微調字距
-  },
-  
-  // 🔥 [新聞內文優化]
-  newsDesc: { 
-    fontSize: 14, 
-    lineHeight: 20, // 增加行高
-    fontFamily: getFontFamily(),
-    opacity: 0.8
-  },
-  
-  newsImage: { width: 80, height: 80, borderRadius: 8, backgroundColor: '#eee' },
+  newsItem: { flexDirection: 'row', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, gap: 12 },
+  newsContent: { flex: 1, justifyContent: 'center' },
+  newsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 6 },
+  newsSource: { fontSize: 12, fontWeight: '700', fontFamily: getFontFamily('bold') },
+  newsTime: { fontSize: 11, fontFamily: getFontFamily() },
+  newsTitle: { fontSize: 15, fontWeight: '500', lineHeight: 20, fontFamily: getFontFamily() },
+  newsImage: { width: 70, height: 70, borderRadius: 6, backgroundColor: '#eee' },
   emptyText: { textAlign: 'center', marginTop: 20, fontFamily: getFontFamily() }
 });
